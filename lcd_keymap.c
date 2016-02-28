@@ -67,11 +67,32 @@ static void lcd_init(void)
 	waitms(2);
 }
 
+static void line_feed(void)
+{
+	static unsigned char current_line = 0;
+
+	LCD_RS(0);
+	if (current_line == 0) {
+		lcd_write4(0xc0);
+		current_line = 1;
+	} else {
+		lcd_write4(0x80);
+		current_line = 0;
+	}
+}
+
 static void lcd_puts(char *s)
 {
+	static unsigned char row = 0;
+
 	LCD_RS(1);
-	while (*s)
+	while (*s) {
 		lcd_write4(*s++);
+		if (++row >= 16) {
+			line_feed();
+			row = 0;
+		}
+	}
 }
 
 static void sleep(void)
@@ -84,22 +105,22 @@ static void sleep(void)
 
 int main(void)
 {
-	volatile unsigned short i;
-	char str[16];
-
 	PORTD = 0;
 	DDRD = 0xfc;
 
+	PORTB |= _BV(0);
+	DDRB |= _BV(0);
+
+	PORTC &= ~(_BV(0));
+	DDRC &= ~(_BV(0));
+
 	lcd_init();
 
-	str[0] = '0';
-	str[1] = '\0';
 	while (1) {
-		lcd_puts(str);
-		str[0]++;
-
-		for (i = 0; i < 5; i++)
-			sleep();
+		if (PINC & _BV(0))
+			lcd_puts("1");
+		else
+			lcd_puts("0");
 	}
 
 	return 0;
