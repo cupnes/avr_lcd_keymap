@@ -61,7 +61,7 @@ static void lcd_init(void)
 	lcd_write4(0b00101000);
 
 	lcd_write4(0b00000110);
-	lcd_write4(0b00001100);
+	lcd_write4(0b00001111);
 
 	lcd_write4(0b00000001);
 	waitms(2);
@@ -111,16 +111,17 @@ int main(void)
 	PORTB |= _BV(0);
 	DDRB |= _BV(0);
 
-	PORTC &= ~(_BV(0));
-	DDRC &= ~(_BV(0));
-
 	lcd_init();
 
 	while (1) {
 		if (PINC & _BV(0))
-			lcd_puts("1");
-		else
-			lcd_puts("0");
+			lcd_puts("3");
+		if (PINC & _BV(1))
+			lcd_puts("6");
+		if (PINC & _BV(2))
+			lcd_puts("9");
+		if (PINC & _BV(3))
+			lcd_puts("#");
 	}
 
 	return 0;
