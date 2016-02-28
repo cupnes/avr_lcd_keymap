@@ -3,7 +3,7 @@
 #define	LCD_PORT	PORTD
 #define KEY_COLS	3
 #define KEY_ROWS	4
-#define KEY_RECOG_THLD	180
+#define KEY_RECOG_THLD	20
 
 #define	LCD_E(b) {			\
 	if(b) LCD_PORT |= _BV(3);	\
@@ -14,6 +14,12 @@
 	if(b) LCD_PORT |= _BV(2);	\
 	else LCD_PORT &= ~_BV(2);	\
 }
+
+static const char key_map[KEY_COLS][KEY_ROWS] = {
+	{'3', '6', '9', '#'},
+	{'2', '5', '8', '0'},
+	{'1', '4', '7', '*'}
+};
 
 static void waitus(unsigned int _n)
 {
@@ -106,9 +112,9 @@ static void sleep(void)
 		for (j = 0; j < 65; j++);
 }
 
-static char check_key(char c)
+static char check_key(unsigned char c)
 {
-	static unsigned char key_counter = 0;
+	static unsigned char key_counter[KEY_COLS] = { 0 };
 	char i, recog_row = -1;
 
 	PORTB = _BV(c);
@@ -118,13 +124,13 @@ static char check_key(char c)
 	for (i = 0; i < KEY_ROWS; i++) {
 		if (PINC & _BV(i)) {
 			recog_row = i;
-			key_counter++;
+			key_counter[c]++;
 			break;
 		}
 	}
 	if (recog_row < 0)
-		key_counter = 0;
-	else if (key_counter < KEY_RECOG_THLD)
+		key_counter[c] = 0;
+	else if (key_counter[c] < KEY_RECOG_THLD)
 		recog_row = -1;
 
 	return recog_row;
@@ -132,32 +138,23 @@ static char check_key(char c)
 
 int main(void)
 {
-	char recog_row;
+	char recog_row, str[2] = { 0 };
+	unsigned char i = 0;
 
 	PORTD = 0;
 	DDRD = 0xfc;
 
-	DDRB |= _BV(0);
+	DDRB = 0x07;
 
 	lcd_init();
 
 	while (1) {
-		if ((recog_row = check_key(0)) >= 0) {
-			switch (recog_row) {
-			case 0:
-				lcd_puts("3");
-				break;
-			case 1:
-				lcd_puts("6");
-				break;
-			case 2:
-				lcd_puts("9");
-				break;
-			case 3:
-				lcd_puts("#");
-				break;
-			}
+		if ((recog_row = check_key(i)) >= 0) {
+			str[0] = key_map[i][(unsigned char)recog_row];
+			lcd_puts(str);
 		}
+		if (++i >= KEY_COLS)
+			i = 0;
 	}
 
 	return 0;
