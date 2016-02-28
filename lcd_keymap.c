@@ -1,6 +1,9 @@
 #include <avr/io.h>
 
 #define	LCD_PORT	PORTD
+#define KEY_COLS	3
+#define KEY_ROWS	4
+#define KEY_RECOG_THLD	180
 
 #define	LCD_E(b) {			\
 	if(b) LCD_PORT |= _BV(3);	\
@@ -103,25 +106,58 @@ static void sleep(void)
 		for (j = 0; j < 65; j++);
 }
 
+static char check_key(char c)
+{
+	static unsigned char key_counter = 0;
+	char i, recog_row = -1;
+
+	PORTB = _BV(c);
+
+	waitus(1);
+
+	for (i = 0; i < KEY_ROWS; i++) {
+		if (PINC & _BV(i)) {
+			recog_row = i;
+			key_counter++;
+			break;
+		}
+	}
+	if (recog_row < 0)
+		key_counter = 0;
+	else if (key_counter < KEY_RECOG_THLD)
+		recog_row = -1;
+
+	return recog_row;
+}
+
 int main(void)
 {
+	char recog_row;
+
 	PORTD = 0;
 	DDRD = 0xfc;
 
-	PORTB |= _BV(0);
 	DDRB |= _BV(0);
 
 	lcd_init();
 
 	while (1) {
-		if (PINC & _BV(0))
-			lcd_puts("3");
-		if (PINC & _BV(1))
-			lcd_puts("6");
-		if (PINC & _BV(2))
-			lcd_puts("9");
-		if (PINC & _BV(3))
-			lcd_puts("#");
+		if ((recog_row = check_key(0)) >= 0) {
+			switch (recog_row) {
+			case 0:
+				lcd_puts("3");
+				break;
+			case 1:
+				lcd_puts("6");
+				break;
+			case 2:
+				lcd_puts("9");
+				break;
+			case 3:
+				lcd_puts("#");
+				break;
+			}
+		}
 	}
 
 	return 0;
